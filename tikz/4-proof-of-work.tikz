@@ -1,0 +1,25 @@
+\usetikzlibrary{
+    arrows.meta,% [>=Triangle]
+    fit,        % [fit=...]
+    positioning % [right=of ...]
+}
+
+\begin{tikzpicture}[>=Triangle]
+
+\tikzset{box/.style={draw, minimum size=2em, text centered},
+    container/.style={inner sep=20pt}
+}
+
+\foreach \i / \x in {0/-3, 1/3} {
+    \node (P\i-PrevHash) [box] at (\x, 1) {Forrige hash};
+    \node (Nonce) [box] [right=0.3cm of P\i-PrevHash] {Nonce};
+    \node (Tx1) [box] [below=0.3cm of P\i-PrevHash]{Trn.};
+    \node (Tx2) [box] [right=0.3cm of Tx1] {Trn.};
+    \node (Tx3) [box] [right=0.3cm of Tx2] {...};
+    \node (P\i-Container) [container] [label={[shift={(8ex,-4ex)}]north west:Blok}, fit=(P\i-PrevHash)(Tx1)(Tx2)(Tx3)] {};
+    \draw (P\i-Container.north west) -- (P\i-Container.south west) -- (P\i-Container.south east) -- (P\i-Container.north east) -- cycle;
+}
+
+\draw [<-] (P0-PrevHash.west) --+ (-2, 0);
+\draw [->] (P0-Container.east |- P1-PrevHash.west) -- (P1-PrevHash.west);
+\end{tikzpicture}

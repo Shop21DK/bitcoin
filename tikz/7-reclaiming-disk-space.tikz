@@ -1,0 +1,64 @@
+\usetikzlibrary{
+arrows.meta,% [>=Triangle]
+fit,        % [fit=...]
+positioning % [right=of ...]
+}
+
+\begin{tikzpicture}[>=Triangle]
+\tikzset{box/.style={draw, minimum size=1em, text centered},
+    container/.style={draw, inner sep=18pt}
+}
+% Prevent childs from overlepping.  https://tex.stackexchange.com/a/60579/264984
+\tikzstyle{level 1}=[<-, sibling distance=36mm]
+\tikzstyle{level 2}=[<-, sibling distance=15mm]
+
+\begin{scope}[xshift=0cm]
+    \node (RootHash) [draw]{Rodhash}
+    child {node [draw, dashed]{Hash01}
+        child {node (Hash0) [draw, dashed]{Hash0}}
+        child {node (Hash1) [draw, dashed]{Hash1}}
+    }
+    child {node [draw, dashed]{Hash23}
+        child {node (Hash2) [draw, dashed]{Hash2}}
+        child {node (Hash3) [draw, dashed]{Hash3}}
+    };
+
+    \node (Tx0) [below=of Hash0] [draw, inner sep=9] {Trn0};
+    \node (Tx1) [below=of Hash1] [draw, inner sep=9] {Trn1};
+    \node (Tx2) [below=of Hash2] [draw, inner sep=9] {Trn2};
+    \node (Tx3) [below=of Hash3] [draw, inner sep=9] {Trn3};
+
+    \draw [<-] (Hash0.south) -- (Tx0.north);
+    \draw [<-] (Hash1.south) -- (Tx1.north);
+    \draw [<-] (Hash2.south) -- (Tx2.north);
+    \draw [<-] (Hash3.south) -- (Tx3.north);
+
+    \node (PrevHash) [above=0.3cm of RootHash, draw, align=center] {Foregående\\hash};
+    \node (Nonce) [right=of PrevHash] [draw] {Nonce};
+    \node (BlockHeaderBefore) [fit=(PrevHash)(Nonce)(RootHash)]
+    [container, label={[shift={(0ex,-4ex)}]north:Blokhoved (Blokhash)}]{};
+    \node (TreeBefore)[container,fit=(BlockHeaderBefore)(Tx0)(Tx3)][label={[shift={(8ex,-4ex)}]north west:Blok}]{};
+    \node [below=0.3cm of TreeBefore] {Transaktioner hashed i et Merkle-træ};
+\end{scope}
+
+\begin{scope}[xshift=8cm]
+    \node (RootHash) [draw]{Rodhash}
+    child {node (Hash01)[draw]{Hash01}}
+    child {node [draw, dashed]{Hash23}
+    child {node (Hash2) [draw]{Hash2}}
+    child {node (Hash3) [draw, dashed]{Hash3}}
+    };
+
+    \node (TTx3) [below=of Hash3] [draw, inner sep=9] {Trn3};
+
+    \draw [<-] (Hash3.south) -- (TTx3.north);
+
+    \node (PrevHash) [above=0.3cm of RootHash, draw, align=center] {Foregående\\hash};
+    \node (Nonce) [right=of PrevHash] [draw] {Nonce};
+    \node (BlockHeaderAfter) [fit=(PrevHash)(Nonce)(RootHash)]
+    [container, label={[shift={(0ex,-4ex)}]north:Blokhoved (Blokhash)}]{};
+    \node (TreeAfter)[container,fit=(BlockHeaderAfter)(Hash01)(TTx3)][label={[shift={(8ex,-4ex)}]north west:Blok}]{};
+    \node [below=0.3cm of TreeAfter] {Efter beskæring af Trn0-2 fra blokken};
+\end{scope}
+
+\end{tikzpicture}

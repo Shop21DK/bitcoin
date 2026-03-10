@@ -1,0 +1,342 @@
+% Preamble
+\documentclass{article}
+\usepackage[danish]{babel}
+%%% Import automatically inserted %%%
+
+% Packages
+
+\usepackage[hidelinks]{hyperref}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{pgffor}% \foreach
+ \usepackage[T1]{fontenc}% \textquotedbl
+ \usepackage[style=ieee]{biblatex}% https://tex.stackexchange.com/questions/28111/how-to-place-abstract-text-in-front-of-abstract-key
+
+\renewenvironment{abstract}{\noindent\bfseries\abstractname:\normalfont}{}% Document
+
+\title{Bitcoin: Et peer-to-peer elektronisk kontantsystem}
+\author{Satoshi Nakamoto \\ satoshi@gmx.com \\ www.bitcoin.org}
+\date{}% don't show date
+ 
+\addbibresource{references.bib}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+    På dansk ved Rasmus Hansen\\
+    \href{https://github.com/Shop21DK/bitcoin}{github.com/Shop21DK/bitcoin}
+\end{center}
+
+\begin{abstract}
+    En ren peer-to-peer version af elektroniske kontanter ville gøre det muligt at sende onlinebetalinger direkte fra en part til en anden uden at gå gennem en finansiel
+    institution. Digitale signaturer er en del af løsningen, men de største fordele går tabt, hvis der stadig er brug for en pålidelig tredjepart for at forhindre dobbeltforbrug.
+    Vi foreslår en løsning på dobbeltforbrugsproblemet ved hjælp af et peer-to-peer netværk. Netværket tidsstempler transaktioner ved at hashe dem ind i en løbende kæde af
+    hash-baseret bevis-for-arbejde, hvilket danner en registrering, der ikke kan ændres uden at genudføre bevis-for-arbejde. Den længste kæde tjener ikke kun som bevis for den
+    rækkefølge af begivenheder, man har været vidne til, men også som bevis for, at den kom fra den største pulje af beregningskraft. Så længe størstedelen af beregningskraften
+    kontrolleres af knudepunkter, der ikke samarbejder om at angribe netværket, vil de skabe den længste kæde og overhale angriberne. Selve netværket kræver minimal struktur.
+    Beskeder udsendes efter bedste evne, og knudepunkter kan forlade og genindtræde i netværket efter behag og acceptere den længste kæde af bevis-for-arbejde som bevis for,
+    hvad der skete, mens de var væk.
+\end{abstract}
+
+\section{Indledning}\label{sec:introduction}
+Handel på internettet er kommet til næsten udelukkende at bero på finansielle institutioner, der fungerer som betroede tredjeparter til behandling af elektroniske betalinger.
+Selv om systemet fungerer godt nok til de fleste transaktioner, lider det stadig under den tillidsbaserede models iboende svagheder. Fuldstændigt irreversible transaktioner er
+reelt ikke mulige, da finansielle institutioner ikke kan undgå at mægle i tvister. Omkostningerne ved mægling øger transaktionsomkostningerne, hvilket begrænser den mindste
+praktisk mulige transaktionsstørrelse og afskærer muligheden for små, spontane transaktioner. Der er også en bredere omkostning i tabet af muligheden for at foretage
+irreversible betalinger for irreversible tjenester. Med muligheden for tilbageførsel udvides behovet for tillid. De handlende skal være på vagt over for deres kunder og bede dem
+om flere oplysninger, end de ellers ville have brug for. En vis mængde svindel anses som uundgåelig. Disse omkostninger og betalingsusikkerheder kan undgås ved at handle
+personligt og bruge fysisk valuta, men der findes ingen mekanisme til at foretage betalinger over en kommunikationskanal uden en betroet part.
+
+Der er behov for et elektronisk betalingssystem baseret på kryptografiske beviser i stedet for tillid, så to villige parter kan handle direkte med hinanden uden behov for en
+betroet tredjepart. Når transaktioner beregningsmæssigt er upraktiske at omgøre, beskyttes sælgere mod svindel, og en simpel deponeringsmekanisme kan nemt implementeres for at
+beskytte købere. I denne hvidbog foreslår vi en løsning på dobbeltforbrugsproblemet ved brug af en peer-to-peer-distribueret tidsstempelserver til at generere beregningsmæssigt
+bevis for transaktionernes kronologiske rækkefølge. Systemet er sikkert, så længe ærlige knudepunkter kollektivt kontrollerer mere beregningskraft end enhver samarbejdende gruppe
+af angribende knudepunkter.
+
+\section{Transaktioner}\label{sec:transactions}
+Vi definerer en elektronisk mønt som en kæde af digitale signaturer. Hver ejer overfører mønten til den næste ved digitalt at signere en hash af den foregående transaktion samt
+den næste ejers offentlige nøgle og tilføje disse til slutningen af mønten. En betalingsmodtager kan bekræfte signaturerne for at bekræfte ejerskabskæden.
+
+%\vspace{1em}
+\input{tikz/2-transactions.tikz}
+\vspace{1em}
+
+Problemet er selvfølgelig, at modtageren ikke kan bekræfte, at en af ejerne ikke har dobbeltforbrugt mønten. En almindelig løsning er at indføre en central, betroet myndighed,
+altså en møntudsteder, der kontrollerer hver transaktion for dobbeltforbrug. Efter hver transaktion skal mønten returneres til møntudstederen, som udsteder en ny mønt, og kun
+mønter udstedt direkte fra møntudstederen anses for ikke at være dobbeltforbrugt. Problemet med denne løsning er, at hele pengesystemets skæbne afhænger af ejeren møntudstederen,
+da hver transaktion skal gå i gennem den, som i en bank.
+
+Vi har brug for en metode, der kan give betalingsmodtageren sikkerhed for, at de tidligere ejere ikke har underskrevet nogen tidligere transaktioner. I vores tilfælde er den
+tidligste transaktion den, der tæller, så vi bekymrer os ikke om senere forsøg på dobbeltforbrug. Den eneste måde at bekræfte fraværet af en transaktion er ved at være opmærksom
+på alle transaktioner. I modellen med en møntudsteder, var møntudstederen opmærksom på alle transaktioner og besluttede, hvilken transaktion der ankom først. For at opnå dette
+uden en betroet part skal alle transaktioner offentliggøres \cite{dai1998money}, og vi har brug for et system, hvor deltagerne kan blive enige om en samlet historik over den
+rækkefølge, de blev modtaget i. Modtageren skal have bevis for, at størstedelen af knudepunkterne på tidspunktet for hver transaktion var enige om, at den transaktion blev
+modtaget først.
+
+\section{Tidsstempelserver}\label{sec:timestamp-server}
+Vi foreslår en løsning der starter med en tidsstempelserver. En tidsstempelserver fungerer ved at tage en hash af en blok af elementer, der skal tidsstemples, og offentliggøre
+hashen bredt, f.eks. i en avis eller et Usenet-indlæg \cite{massias1999design, haber1991time, bayer1993improving, haber1997secure}. Tidsstemplet beviser, at dataene nødvendigvis
+må have eksisteret på det tidspunkt for at være kommet ind i hashen. Hvert tidsstempel inkluderer det foregående tidsstempel i sin hash og samlet danner de en kæde. Hvert
+yderligere tidsstempel forstærker de foregående. \\
+
+\vspace{1em}
+\input{tikz/3-timestamp-server.tikz}
+\vspace{1em}
+
+\section{Bevis-for-arbejde (Proof-of-Work)}\label{sec:proof-of-work}
+For at implementere en distribueret tidsstempelserver over et peer-to-peer netværk skal vi bruge et system, der understøtter
+bevis-for-arbejde (Proof-of-Work), som Adam Backs Hashcash \cite{back2002hashcash}, i stedet for aviser eller Usenet-indlæg. Bevis-for-arbejde involverer søgning efter en værdi, der, når den
+hashes (f.eks. med SHA-256) begynder med et antal nuller. Det gennemsnitlige nødvendige arbejde er eksponentielt i antallet af nødvendige nuller og kan bekræftes ved at beregne
+en enkelt hash. For vores tidsstempel-netværk implementerer vi bevis-for-arbejde ved at inkrementere en nonce (en variabel værdi) i blokken, indtil der findes en værdi, der
+giver blokkens hash de nødvendige nuller. Når beregningsindsatsen er brugt på at få blokken til at opfylde bevis-for-arbejde, kan blokken ikke ændres uden at udføre arbejdet
+igen. Da senere blokke kædes sammen efter den, vil arbejdet med at ændre blokken omfatte at beregne en valid hash for alle efterfølgende blokke. \\
+
+\vspace{1em}
+\input{tikz/4-proof-of-work.tikz}
+\vspace{1em}
+
+Bevis-for-arbejde løser også problemet med at bestemme repræsentation i flertalsbeslutninger. Hvis flertallet var baseret på \'en IP-adresse\', en stemme, kunne det undergraves
+af enhver, der er har adgang til mange IP'er. Bevis-for-arbejde er i bund og grund \'en beregningsenhed (CPU), \'en stemme. Flertalsbeslutningen er repræsenteret af den længste
+kæde, som har den største mængde bevis-for-arbejde investeret i sig. Hvis størstedelen af beregningskraft kontrolleres af ærlige knudepunkter, vil den ærlige kæde vokse hurtigst
+og overgå alle konkurrerende kæder. For at ændre en tidligere blok skal en angriber igen lave bevis-for-arbejde for blokken og alle blokke efter den og derefter indhente og overgå
+de ærlige knudepunkters arbejde. Vi vil senere vise, at sandsynligheden for, at en langsommere angriber indhenter det forsømte, mindskes eksponentielt, efterhånden som
+efterfølgende blokke tilføjes til kæden.
+
+For at kompensere for stigende hardwarehastighed og varierende interesse i at drive knudepunkter over tid, bestemmes sværhedsgraden for bevis-for-arbejde via et glidende
+gennemsnit, der sigter mod et gennemsnitligt antal blokke pr. time. Hvis de genereres for hurtigt, stiger sværhedsgraden.
+
+\section{Netværk}\label{sec:network}
+Skridtene for at drive netværket er som følger:
+\begin{enumerate}[label=\arabic*)]% https://tex.stackexchange.com/questions/42905/enumerated-list-with-square-brackets
+         \item Nye transaktioner udsendes til alle knudepunkter.
+         \item Hvert knudepunkt samler nye transaktioner til en blok.
+         \item Hvert knudepunkt arbejder på at finde et vanskeligt bevis-for-arbejde til sin blok.
+         \item Når et knudepunkt finder et bevis-for-arbejde, udsender det blokken til alle andre knudepunkter.
+         \item Knudepunkter accepterer kun blokken, hvis alle transaktioner i den er gyldige og ikke allerede er forbrugte.
+         \item Knudepunkter udtrykker deres accept af blokken ved at arbejde på at oprette den næste blok i kæden ved at bruge hashen fra den accepterede blok som den forrige hash.
+\end{enumerate}
+
+Knudepunkter anser altid den længste kæde for at være den korrekte og vil fortsætte med at udvide den. Hvis to knudepunkter sender forskellige versioner af den næste blok
+samtidigt, kan nogle knudepunkter modtage den ene eller den anden først. I så fald arbejder de på den første, de modtog, men gemmer den anden gren, i fald af, at den skulle
+blive længere. Afgørelsen af hvilken blok der bliver valgt sker, når det næste bevis-for-arbejde findes, og en gren bliver længere; de knudepunkter, der arbejdede på den anden
+gren, vil derefter skifte til den længste.
+
+Nye transaktionsudsendelser behøver ikke nødvendigvis at nå alle knudepunkter. Så længe de når mange knudepunkter, vil de snart blive inkluderet i en blok. Systemet kan også
+håndtere tabte meddelelser. Hvis et knudepunkt ikke modtager en blok, vil det anmode om den tabte blok, når det modtager den næste blok og indser, at den har misset en.
+
+\section{Incitament}\label{sec:incentive}
+Ifølge konventionen er den første transaktion i en blok en særlig transaktion, der starter en ny mønt, som ejes af skaberen af blokken.
+Dette giver et incitament for knudepunkter til at støtte netværket, og det er en måde at distribuere mønter i omløb, da der ikke er en central myndighed til at udstede dem.
+Den konstante tilføjelse af en fast mængde nye mønter kan sammenlignes med minedrift, hvor minedrivere bruger ressourcer til at bring guld i cirkulation. I vores tilfælde er
+det CPU-tid og elektricitet, der bliver brugt.
+
+Incitamentet kan også finansieres via transaktionsgebyrer. Hvis outputværdien af en transaktion er mindre end inputværdien, er forskellen et transaktionsgebyr, der lægges til
+incitamentsværdien af den blok, der indeholder transaktionen. Når et forudbestemt antal mønter er kommet i omløb, kan incitamentet overgå helt til transaktionsgebyrer og systemet
+vil være fuldstændigt inflationsfrit.
+
+Incitamentet kan hjælpe med at opfordre knudepunkter til at forblive ærlige. Hvis en grådig angriber er i stand til at samle mere beregningskraft end alle de ærlige knudepunkter,
+må han vælge mellem at bruge den til at bedrage folk ved at trække sine betalinger tilbage eller til at generere nye mønter. Det burde være mere rentabelt for ham at følge
+reglerne, som giver ham flere nye mønter end alle andre tilsammen, fremfor at underminere systemet og gyldigheden af sin egen formue.
+
+\section{Genbrug af diskplads}\label{sec:reclaiming-disk-space}
+Når den seneste transaktion i en mønt er begravet under tilstrækkeligt mange blokke, kan de brugte transaktioner før den kasseres for at spare diskplads. For at muliggøre
+dette uden at ødelægge blokkens hash, hashes transaktionerne i et Merkle-træ \cite{merkle1980protocols, massias1999design, haber1997secure}, hvor kun roden inkluderes
+i blokkens hash. Gamle blokke kan derefter komprimeres ved at fjerne grenene fra træet. De indre hashes behøver ikke at blive gemt.\\
+
+\vspace{1em}
+\input{tikz/7-reclaiming-disk-space.tikz}
+\vspace{1em}
+
+Et blokhoved uden transaktioner ville være omkring 80 bytes. Hvis vi antager, at blokke genereres hvert 10. minut, giver det 80 bytes * 6 * 24 * 365 = 4,2 MB om året. Med
+computersystemer, der som oftest sælges med 2 GB RAM i 2008, og med Moores lov der forudser en aktuel vækst på 1,2 GB om året, burde lagring ikke være et problem, selv hvis
+blokhovederne skal opbevares i hukommelsen.
+
+\section{Forenklet betalingsbekræftelse}\label{sec:simplified-payment-verification}
+Det er muligt at bekræfte betalinger uden at køre et fuldt netværksknudepunkt. En bruger skal
+kun opbevare en kopi af blokhovederne fra den længste bevis-for-arbejde-kæde. Dette kan opnås ved at spørge netværksknudepunkter, indtil han er sikker på, at han har den
+længste kæde, og den Merkle-gren, der forbinder transaktionen til den blok, den er tidsstemplet i. Han kan ikke selv tjekke transaktionen, men ved at forbinde den til et sted
+i kæden kan han se, at et netværksknudepunkt har accepteret den, og blokke tilføjet efter den bekræfter yderligere, at netværket har accepteret den. \\
+
+\vspace{1em}
+\input{tikz/8-simplified-payment-verification.tikz}
+\vspace{1em}
+
+Beskæftigelsen er således pålidelig, så længe ærlige knudepunkter kontrollerer netværket, men den er mere sårbar, hvis en angriber overmander netværket. Knudepunkter i netværket
+kan bekræfte transaktioner for sig selv, men den forenklede metode kan narres af en angribers fabrikerede transaktioner, så længe angriberen fortsat kan overmande netværket.
+En strategi til at beskytte mod dette er at acceptere advarsler fra knudepunkter i netværket, når de opdager en ugyldig blok, hvilket får brugerens software til at downloade
+den fulde blok og de alarmerede transaktioner for at bekræfte uoverensstemmelsen. Virksomheder, der modtager hyppige betalinger, vil sandsynligvis stadig ønske at køre deres
+egne knudepunkter for øget uafhængig sikkerhed og hurtigere bekræftelse.
+
+\section{Kombination og opdeling af værdi}\label{sec:combining-and-splitting-value}
+Selvom det ville være muligt at håndtere mønter individuelt, ville det være uhåndterbart at lave en separat transaktion for hver øre i en overførsel. For at tillade opdeling og
+kombination af værdier indeholder transaktioner flere inputs og outputs. Normalt vil der enten være et enkelt input fra en større tidligere transaktion eller flere inputs, der
+kombinerer mindre beløb, og højst to outputs: \'et til betalingen og \'et til at returnere eventuelle byttepenge tilbage til afsenderen.\\
+
+\vspace{1em}
+\input{tikz/9-combining-and-splitting-value.tikz}
+\vspace{1em}
+
+Det skal bemærkes, at spredning, hvor en transaktion afhænger af flere transaktioner, og disse transaktioner afhænger af endnu flere, ikke er et problem her. Der er aldrig behov
+for at udtrække en komplet separat kopi af en transaktions historie.
+
+\section{Privatliv}\label{sec:privacy} Den traditionelle bankmodel opnår et vist niveau af privatliv ved at begrænse adgangen til information til de involverede parter og den
+betroede tredje part. Kravet om at annoncere alle transaktioner offentligt udelukker denne metode, men privatliv kan stadig opretholdes ved at bryde informationsstrømmen et
+andet sted: ved at holde offentlige nøgler anonyme. Offentligheden kan se, at nogen sender et beløb til en anden, men uden information, der kobler transaktionen til nogen
+specifik person. Dette ligner det informationsniveau, der frigives af børser, hvor tidspunktet for og størrelsen af individuelle handler (kendt som \textquotedbl tape\textquotedbl),
+offentliggøres, men uden at det fremgår, hvem parterne var.\\
+
+\vspace{1em}
+\input{tikz/10-privacy.tikz}
+\vspace{1em}
+
+Som en ekstra firewall bør et nyt nøglepar bruges til hver transaktion for at forhindre, at transaktionerne bliver knyttet til en fælles ejer. En vis sammenkædning er stadig
+uundgåelig ved transaktioner med flere inputs, som nødvendigvis afslører, at deres inputs var ejet af den samme ejer. Risikoen er, at hvis ejeren af en nøgle afsløres, kan
+sammenkædning afsløre andre transaktioner, der tilhører den samme ejer.
+
+\section{Beregninger}\label{sec:calculations}
+Vi overvejer scenariet, hvor en angriber forsøger at generere en alternativ kæde hurtigere end den ærlige kæde. Selv hvis det lykkes, åbner det ikke systemet for vilkårlige
+ændringer, som f.eks. at skabe værdi ud af den blå luft eller at stjæle penge, som aldrig har tilhørt angriberen. Knudepunkterne vil ikke acceptere en ugyldig transaktion
+som betaling, og ærlige knudepunkter vil aldrig acceptere en blok, der indeholder ugyldige transaktioner. En angriber kan kun forsøge at ændre en af sine egne transaktioner
+for at tage penge tilbage, som han for nylig har brugt.
+
+Kapløbet mellem den ærlige kæde og en angriberkæde kan karakteriseres som en binomial random walk. Det er en succes, hvis den ærlige kæde bliver forlænget med en blok,
+hvilket øger dens forspring med +1, og en fejl, hvis angriberens kæde bliver forlænget med en blok, hvilket reducerer dens forspring med -1.
+
+Sandsynligheden for, at en angriber indhenter et givet underskud, svarer til Gambler's Ruin-problemet. Antag, at en gambler med ubegrænset kredit starter med et underskud og
+spiller et potentielt uendeligt antal forsøg for at prøve at nå breakeven. Vi kan beregne sandsynligheden for, at han nogensinde når breakeven, eller at en angriber nogensinde
+indhenter den ærlige kæde, på følgende måde \cite{fellerintroduction}:
+
+\[
+    \begin{aligned}
+        & p = \text{sandsynligheden for at et ærligt knudepunkt finder den næste blok} \\
+        & q = \text{sandsynligheden for at et angribende knudepunkt finder den næste blok} \\
+        & q_z = \text{sandsynligheden for at et angribende knudepunkt indhenter kæden når den er z blokke bagud} \\
+        & q_z = \left\{\begin{aligned}
+                &1 & \text{if } p \le q \\
+                &{(q / p)}^z & \text{if } p > q
+                \end{aligned}\right\}
+    \end{aligned}
+\]
+
+Med vores antagelse om, at $p > q$, falder sandsynligheden eksponentielt, når antallet af blokke, som angriberen skal indhente, stiger. Med oddsene imod sig bliver hans chancer
+forsvindende små, efterhånden som han kommer længere bagud, hvis han ikke tidligt er heldig.
+
+Vi overvejer nu, hvor længe modtageren af en ny transaktion skal vente, før han er tilstrækkelig sikker på, at afsenderen ikke kan ændre transaktionen. Vi antager, at afsenderen
+er en angriber, der ønsker at få modtageren til at tro, at angriberen har betalt, men angriberen vil senere ændre betalingen tilbage til sig selv. Modtageren vil blive advaret,
+når det sker, men afsenderen håber, at det vil være for sent.
+
+Modtageren laver et nyt nøglepar og giver den offentlige nøgle til afsenderen kort før signering af transaktionen. Det forhindrer afsenderen i at forberede en kæde af blokke i
+forvejen ved kontinuerligt at arbejde på den, indtil han er heldig nok til at komme langt nok foran således, at transaktionen kan udføres i præcis det øjeblik, hvor muligheden
+for svindel opstår. Når transaktionen er sendt til netværket, begynder den uærlige afsender i al hemmelighed at arbejde på en parallel kæde, der indeholder en alternativ version
+af hans transaktion.
+
+Modtageren venter, indtil transaktionen er blevet føjet til en blok, og $z$ blokke efterfølgende er blevet linket. Han kender ikke den nøjagtige mængde blokke, som angriberen
+har genereret, men hvis man antager, at de ærlige blokke tog den gennemsnitlige forventede tid pr. blok, vil angriberens potentielle fremskridt være en Poisson-fordeling med
+forventet værdi:
+
+\[
+    \lambda= z \frac{q}{p}
+\]
+
+For at få sandsynligheden for, at angriberen stadig kan indhente det forsømte nu, ganger vi Poisson-tætheden for hvert fremskridt, han kunne have gjort, med sandsynligheden
+for, at han kan indhente det forsømte fra dette punkt:
+
+\[
+    \sum_{k = 0}^{\infty} {
+        \frac{\lambda^k e^{-\lambda}}{k!} \cdot
+        \left\{\begin{aligned}
+        & {(q / p)}^{z-k} & \text{if } k \le z \\
+        &  1  & \text{if } k > z
+        \end{aligned}\right\}
+    }
+\]
+
+Omskrivning for at undgå at summere den uendelige hale af fordelingen:\[
+    1 - \sum_{k = 0}^{z} {
+        \frac{\lambda^k e^{-\lambda}}{k!} \cdot \left(1 - {(q / p)}^{z-k} \right)
+    }
+\]
+
+Konvertering til C-kode: \\
+
+\begin{verbatim}
+#include <math.h>
+double AttackerSuccessProbability(double q, int z)
+{
+    double p = 1.0 - q;
+    double lambda = z * (q / p);
+    double sum = 1.0;
+    int i, k;
+    for (k = 0; k <= z; k++)
+    {
+        double poisson = exp(-lambda);
+        for (i = 1; i <= k; i++)
+        poisson *= lambda / i;
+        sum -= poisson * (1 - pow(q / p, z - k));
+    }
+    return sum;
+}
+\end{verbatim}
+
+Ved at gennemgå nogle eksempler kan vi se, at sandsynligheden falder eksponentielt med $z$. \\
+
+\begin{verbatim}
+q=0.1
+z=0     P=1.0000000
+z=1     P=0.2045873
+z=2     P=0.0509779
+z=3     P=0.0131722
+z=4     P=0.0034552
+z=5     P=0.0009137
+z=6     P=0.0002428
+z=7     P=0.0000647
+z=8     P=0.0000173
+z=9     P=0.0000046
+z=10    P=0.0000012
+
+q=0.3
+z=0     P=1.0000000
+z=5     P=0.1773523
+z=10    P=0.0416605
+z=15    P=0.0101008
+z=20    P=0.0024804
+z=25    P=0.0006132
+z=30    P=0.0001522
+z=35    P=0.0000379
+z=40    P=0.0000095
+z=45    P=0.0000024
+z=50    P=0.0000006
+\end{verbatim}
+
+Løsning for P mindre end 0,1\%: \\
+
+\begin{verbatim}
+P < 0.001
+q=0.10      z=5
+q=0.15      z=8
+q=0.20      z=11
+q=0.25      z=15
+q=0.30      z=24
+q=0.35      z=41
+q=0.40      z=89
+q=0.45      z=340
+\end{verbatim}
+
+\section{Konklusion}\label{sec:conclusion}
+
+Vi har foreslået et system til elektroniske transaktioner, der ikke bygger på tillid. Vi startede med den sædvanlige struktur, hvor mønter er skabt af digitale signaturer,
+som giver stærk kontrol over ejerskab, men er ufuldstændig uden en måde at forhindre dobbeltforbrug på. For at løse dette foreslog vi et peer-to-peer netværk, der bruger
+bevis-for-arbejde til at registrere en offentlig transaktionshistorie, der hurtigt bliver beregningsmæssigt upraktisk for en angriber at ændre, hvis ærlige knudepunkter
+kontrollerer majoriteten af beregningskraften i netværket. Netværket er gennem sin ustrukturerede enkelthed robust. Knuderne arbejder på \'en gang under begrænset koordinering.
+De behøver ikke at blive identificeret, da beskeder ikke dirigeres til noget bestemt sted og kun skal leveres efter bedste evne. Knudepunkter kan forlade og genindtræde i
+netværket efter behag og acceptere bevis-for-arbejde-kæden som bevis for, hvad der skete, mens de var væk. De stemmer med deres beregningskraft og udtrykker deres accept af
+gyldige blokke ved at arbejde på at forlænge blokkæden og afviser ugyldige blokke ved at nægte at arbejde på dem. Alle nødvendige regler og incitamenter kan håndhæves
+med denne konsensusmekanisme.
+
+\printbibliography
+
+\end{document}

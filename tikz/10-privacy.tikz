@@ -1,0 +1,36 @@
+\usetikzlibrary{
+    arrows.meta,% [>=Triangle]
+    fit,        % [fit=...]
+    positioning % [right=of ...]
+}
+
+\tikzset{box/.style={draw, minimum size=3em, text centered, text width=6em}}
+
+
+\begin{tikzpicture}[>=Triangle]
+\node at (0.5, 1) {Traditional model for privathed};
+\node (Identities) at (0, 0)  [box] {Identiteter};
+\node (Transactions) [box, right=of Identities] {Transaktioner};
+\node (TrustedThirdParty) [box, right=of Transactions] {Betroet\\Tredjepart};
+\node (Counterparty) [box, right=of TrustedThirdParty] {Modpart};
+\node (Public) [box, right=of Counterparty] {Offentlighed};
+
+\draw (Identities) -- (Transactions);
+\draw [->] (Transactions) -- (TrustedThirdParty);
+\draw [->] (TrustedThirdParty) -- (Counterparty);
+\path (Counterparty) -- node (Midway)[midway] {} (Public);
+\draw (Midway)++(0, 0.8) --+ (0, -1.6);
+\end{tikzpicture}
+
+\bigskip
+
+\begin{tikzpicture}[>=Triangle]
+\node at (0.5, 1) {Ny model for privathed};
+\node (Identities) at (0, 0)  [box] {Identiteter};
+\node (Transactions) [box, right=of Identities] {Transaktioner};
+\node (Public) [box, right=of Transactions] {Offentlighed};
+
+\draw [->] (Transactions) -- (Public);
+\path (Identities) -- node (Midway)[midway] {} (Transactions);
+\draw (Midway)++(0, 0.8) --+ (0, -1.6);
+\end{tikzpicture}

@@ -1,0 +1,30 @@
+\usetikzlibrary{
+    arrows.meta,% [>=Triangle]
+    fit,        % [fit=...]
+    positioning % [right=of ...]
+}
+
+
+\begin{tikzpicture}[>=Triangle]
+
+\tikzset{box/.style={draw, minimum size=2em, text width=3em, text centered},
+    container/.style={draw, inner sep=20pt}
+}
+\foreach[evaluate={\prev=int(\i - 1)}] \i in {1, 2, 3} {
+    \node (P\i-PubKey) at (\i * 5, 0) [box, text width=5em] {Ejer \i's \\ offentlige nøgle};
+    \node (P\i-Hash) [below=0.8cm of P\i-PubKey][box] {Hash};
+    \node (P\i-Sig) [below=of P\i-Hash][box, text width=5em] {Ejer \prev's \\ signatur};
+    \draw [->] (P\i-Hash) -- (P\i-Sig);
+    \draw [->] (P\i-Hash.45 |- P\i-PubKey.south) -- (P\i-Hash.45);
+    \node (P\i-Tx) [fit=(P\i-PubKey)(P\i-Hash)(P\i-Sig)][container, label={[shift={(15ex,-4ex)}]north west:Transaction}]{};
+    \node (P\i-PrivKey) [below=of P\i-Tx] [box, text width=6em] {Ejer \i's \\ private nøgle};
+}
+
+\draw [->] ([xshift=-2.5cm, yshift=0.5cm]P1-Hash.north) -| ([xshift=-0.3cm]P1-Hash.north);
+
+\foreach[evaluate={\next=int(\i + 1)}] \i in {1, 2} {
+    \draw [->, dashed] (P\i-PubKey.330) -- (P\i-PubKey.330 |- P\i-Hash.south east) -- node[midway, sloped, above=2pt]{Verificer} (P\next-Sig.165);
+    \draw [->, dashed] (P\i-PrivKey.15) -- node[midway, sloped, above=2pt]{Signer} (P\next-Sig.195);
+    \draw [->] ([yshift=0.5cm]P\i-Hash.north -| P\i-Tx.east) -| ([xshift=-0.3cm]P\next-Hash.north);
+}
+\end{tikzpicture}

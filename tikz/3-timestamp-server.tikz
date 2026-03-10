@@ -1,0 +1,25 @@
+\usetikzlibrary{
+    arrows.meta,% [>=Triangle]
+    fit,        % [fit=...]
+    positioning % [right=of ...]
+}
+
+\begin{tikzpicture}[>=Triangle]
+\tikzset{box/.style={draw, minimum size=2em, text width=2em, text centered},
+    container/.style={draw, inner sep=20pt}
+}
+
+\foreach \i / \x in {0/-2, 1/4} {
+    \node (P\i-Hash) [box] at (\x, 1.5) {Hash};
+    \node (Item1) [box] at (\x - 1, 0){Ele.};
+    \node (Item2) [box] [right=0.3cm of Item1] {Ele.};
+    \node (Item3) [box] [right=0.3cm of Item2] {...};
+    \node (Container) [container] [label={[shift={(8ex,-4ex)}]north west:Blok}, fit=(Item1)(Item2)(Item3)] {};
+
+    \draw [->] (Container.north west)+(1, 0) |- ([yshift=-4]P\i-Hash.west);
+}
+
+\draw [<-] ([yshift=4]P0-Hash.west) --+ (-3, 0);
+\draw [->] ([yshift=4]P0-Hash.east) -- ([yshift=4]P1-Hash.west);
+\draw [->] ([yshift=4]P1-Hash.east) --+ (3, 0);
+\end{tikzpicture}
