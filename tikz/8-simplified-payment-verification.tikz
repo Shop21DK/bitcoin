@@ -19,7 +19,7 @@
     \node (P\i-PrevHash) [box, align=center] at (\x, 1) {Foregående\\hash};
     \node (Nonce) [box] [right=0.3cm of P\i-PrevHash] {Nonce};
     \node (P\i-MerkleRoot) [below=0.3cm of P\i-PrevHash] [draw]{Merkle-rod};
-    \node (P\i-Container) [container] [draw] [label={[shift={(16ex,-3ex)}]north west:Block Header}, fit=(P\i-PrevHash)(Nonce)(P\i-MerkleRoot)] {};
+    \node (P\i-Container) [container] [draw] [label={[shift={(16ex,-3ex)}]north west:Blokhoved}, fit=(P\i-PrevHash)(Nonce)(P\i-MerkleRoot)] {};
 }
 
 \foreach[evaluate={\next=int(\i + 1)}] \i in {0, 1} {

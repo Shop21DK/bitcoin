@@ -16,7 +16,7 @@
     \node (P\i-Sig) [below=of P\i-Hash][box, text width=5em] {Ejer \prev's \\ signatur};
     \draw [->] (P\i-Hash) -- (P\i-Sig);
     \draw [->] (P\i-Hash.45 |- P\i-PubKey.south) -- (P\i-Hash.45);
-    \node (P\i-Tx) [fit=(P\i-PubKey)(P\i-Hash)(P\i-Sig)][container, label={[shift={(15ex,-4ex)}]north west:Transaction}]{};
+    \node (P\i-Tx) [fit=(P\i-PubKey)(P\i-Hash)(P\i-Sig)][container, label={[shift={(15ex,-4ex)}]north west:Transaktion}]{};
     \node (P\i-PrivKey) [below=of P\i-Tx] [box, text width=6em] {Ejer \i's \\ private nøgle};
 }
 

@@ -8,7 +8,7 @@ Hvis du finder fejl eller har forslag til forbedringer, er du velkommen til at o
 ## Tak til
 - [Satoshi Nakamoto](https://bitcoin.org/bitcoin.pdf) for at skrive det originale whitepaper og hans fantastiske gave.
 - [qwinsi](https://github.com/qwinsi/bitcoin-whitepaper-latex) for at have lavet en LaTeX-version af Bitcoin Whitepaper, som jeg har brugt som grundlag for denne oversættelse.
-- Pierre, Pia, Jonas, Peter og alle andre, der har givet feedback og rettelser til denne oversættelse.
+- Pierre, Pia, Jonas, Peter, Jake og alle andre, der har givet feedback og rettelser til denne oversættelse.
 
 
 ## Mere Bitcoin?
